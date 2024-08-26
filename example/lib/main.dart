@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:sms_advanced/sms_advanced.dart';
 
+class SMSModel {
+  SMSModel(this.number, this.message, this.state);
+  String? number;
+  String? message;
+  String? state;
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -13,45 +20,84 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final SmsQuery query = SmsQuery();
-  List<SmsThread> threads = [];
+  List<SMSModel> list = [
+    SMSModel('15100667732', 'Hello 1', '0'),
+    // SMSModel('15100667732', 'Hello 2', '0'),
+    // SMSModel('15100667732', 'Hello 3', '0'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    query.getAllThreads.then((value) {
-      threads = value;
-      setState(() {});
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> widgetList = [];
+    for (var i = 0; i < list.length; i++) {
+      widgetList.add(Row(
+        children: [
+          Text(list[i].number!),
+          const SizedBox(
+            width: 15,
+          ),
+          Text(list[i].message!),
+          const SizedBox(
+            width: 15,
+          ),
+          Text(list[i].state!),
+        ],
+      ));
+    }
+
     return MaterialApp(
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text("Example"),
         ),
-        home: Scaffold(
-          appBar: AppBar(
-            title: const Text("Example"),
+        body: Container(
+          child: Column(
+            children: [
+              Column(children: widgetList),
+              ElevatedButton(
+                  child: const Text("Send SMS"),
+                  onPressed: () async {
+                    sendSMS();
+                  }),
+            ],
           ),
-          body: ListView.builder(
-            itemCount: threads.length,
-            itemBuilder: (BuildContext context, int index) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    minVerticalPadding: 8,
-                    minLeadingWidth: 4,
-                    title: Text(threads[index].messages.last.body ?? 'empty'),
-                    subtitle: Text(threads[index].contact?.address ?? 'empty'),
-                  ),
-                  const Divider()
-                ],
-              );
-            },
-          ),
-        ));
+        ),
+      ),
+    );
+  }
+
+  sendSMS() async {
+    for (var i = 0; i < list.length; i++) {
+      SmsSender sender = new SmsSender();
+      SmsMessage message = new SmsMessage(list[i].number, list[i].message);
+      SmsMessage? msg =
+          await sender.sendSms(message, simCard: SimCard(slot: 2, imei: ''));
+      message.onStateChanged.listen((state) {
+        if (state == SmsMessageState.Sent) {
+          print("SMS sent");
+          setState(() {
+            list[i].state = '1';
+          });
+        }
+      });
+
+      // SmsStatus result = await BackgroundSms.sendMessage(
+      //     phoneNumber: list[i].number!, message: list[i].message!, simSlot: 2);
+      // if (result == SmsStatus.sent) {
+      //   setState(() {
+      //     list[i].state = '1';
+      //   });
+      // } else {
+      //   print("Failed");
+      // }
+    }
   }
 }
